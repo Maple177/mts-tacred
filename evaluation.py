@@ -53,7 +53,7 @@ def evaluate(dataloader,model,predict_only=False):
     all_preds = np.concatenate(all_preds)
     if not predict_only:
         all_golds = np.concatenate(all_golds)
-        eval_score = f1_score(all_golds,all_preds,average="micro",labels=list(range(1,14)))
+        eval_score = f1_score(all_golds,all_preds,average="micro")
         eval_loss = eval_loss / nb_eval_steps
         return eval_loss, eval_score
     else:
@@ -85,20 +85,20 @@ def main():
     config = BertConfig.from_pretrained(args.config_name_or_path)
 
     if args.dev:
-        eval_dataloader = DataLoader(args.data_dir,"dev",args.seed,args.batch_size,args.device,args.debug)
+        eval_dataloader = DataLoader(args.data_dir,"dev",args.mode,args.seed,args.batch_size,args.device,args.debug)
     else:
-        eval_dataloader = DataLoader(args.data_dir,"test",args.seed,args.batch_size,args.device,args.debug)
+        eval_dataloader = DataLoader(args.data_dir,"test",args.mode,args.seed,args.batch_size,args.device,args.debug)
 
-    OUTPUT_DIR = os.path.join(args.model_dir,f"{args.model_type}_bs_{args.batch_size}_lr_{args.learning_rate}_syntactic_lr_{args.syntactic_learning_rate}/","preds")
+    OUTPUT_DIR = os.path.join(args.model_dir,f"lr_{args.learning_rate}_alpha_{args.alpha}/","preds")
     if not os.path.exists(OUTPUT_DIR):
         os.makedirs(OUTPUT_DIR)
 
     all_preds = []
     for ensemble_id in range(1,args.ensemble_size+1):
         set_seed(args,ensemble_id)
-        model_dir = os.path.join(args.model_dir,f"{args.model_type}_bs_{args.batch_size}_lr_{args.learning_rate}_syntactic_lr_{args.syntactic_learning_rate}/ensemble_{ensemble_id}")   
+        model_dir = os.path.join(args.model_dir,f"lr_{args.learning_rate}_alpha_{args.alpha}/ensemble_{ensemble_id}")   
         model = SyntaxBertModel.from_pretrained(model_dir,config=config,dataset_name=args.dataset_name,num_labels=args.num_labels,
-                                                target_layer_ix=args.layer_ix,mask_percentage=args.mask_perc)
+                                                mode=args.mode,coef=args.alpha)
         model.to(args.device)
         tmp_preds = evaluate(eval_dataloader,model,True)
         all_preds.append([np.argmax(tmp_preds,1)])

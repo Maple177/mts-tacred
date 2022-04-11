@@ -40,11 +40,11 @@ def train(args,train_dataloader,dev_dataloader,model,output_dir,ensemble_id):
     logger.info(f"===ensemble id:{ensemble_id}; number of steps:{t_total}; learning rate:{args.learning_rate}")
     
     # set different learning rate for "syntactic" layers
-    syntactic_params_lst = ["trans_dist.weight","trans_dist.bias","trans_depth.weight","trans_depth.bias",
-                            "clf_dist.weight","clf_dist.bias","clf_depth.weight","clf_depth.bias"]
-    base_parameters = list(filter(lambda p:p[0] not in syntactic_params_lst,model.named_parameters()))[0][1]
-    syntactic_parameters = list(filter(lambda p:p[0] in syntactic_params_lst,model.named_parameters()))[0][1]
-    optimizer = Adam([{"params":base_parameters},{"params":syntactic_parameters,"lr":args.syntactic_learning_rate}],lr=args.learning_rate)
+    #syntactic_params_lst = ["trans_dist.weight","trans_dist.bias","trans_depth.weight","trans_depth.bias",
+    #                        "clf_dist.weight","clf_dist.bias","clf_depth.weight","clf_depth.bias"]
+    #base_parameters = list(filter(lambda p:p[0] not in syntactic_params_lst,model.named_parameters()))[0][1]
+    #syntactic_parameters = list(filter(lambda p:p[0] in syntactic_params_lst,model.named_parameters()))[0][1]
+    optimizer = Adam(model.parameters(),lr=args.learning_rate)
 
     # Train
     logger.info("***** Running training *****")
@@ -165,21 +165,20 @@ def main():
 
     config = BertConfig.from_pretrained(args.config_name_or_path)
 
-    train_dataloader = DataLoader(args.data_dir,"train",args.seed,args.batch_size,args.device,args.debug)
-    dev_dataloader = DataLoader(args.data_dir,"dev",args.seed,args.batch_size,args.device,args.debug)
+    train_dataloader = DataLoader(args.data_dir,"train",args.mode,args.seed,args.batch_size,args.device,args.debug)
+    dev_dataloader = DataLoader(args.data_dir,"dev",args.mode,args.seed,args.batch_size,args.device,args.debug)
     
     logger.info("data loaded.")
 
-    OUTPUT_DIR = os.path.join(args.model_dir,f"{args.model_type}_bs_{args.batch_size}_lr_{args.learning_rate}_syntactic_lr_{args.syntactic_learning_rate}")
+    OUTPUT_DIR = os.path.join(args.model_dir,f"lr_{args.learning_rate}_alpha_{args.alpha}")
     if not os.path.exists(OUTPUT_DIR):
         os.makedirs(OUTPUT_DIR)   
-
  
     for ensemble_id in range(1,args.ensemble_size+1):
         torch.cuda.empty_cache()
         set_seed(args,ensemble_id)
-        model = SyntaxBertModel.from_pretrained(pretrained_bert_urls[args.model_type],config=config,dataset_name=args.dataset_name,num_labels=args.num_labels,
-                                                probe_rank=args.probe_rank,target_layer_ix=args.layer_ix,mask_percentage=args.mask_perc)
+        model = SyntaxBertModel.from_pretrained(pretrained_bert_urls[args.model_type],config=config,dataset_name=args.dataset_name,
+                                                num_labels=args.num_labels,mode=args.mode,coef=args.alpha)
         model.to(args.device)
 
         model_dir = os.path.join(OUTPUT_DIR, f"ensemble_{ensemble_id}")

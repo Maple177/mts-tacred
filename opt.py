@@ -28,7 +28,7 @@ def get_args():
                          help="random seed for ensure reproducibility")
     parser.add_argument("--no_randomness",action="store_true",
                          help="if set, outputs of network are fixed.")
-    parser.add_argument("--mode",type=str,default="with_syntax",help="set the mode for finetuning model: {'probe_only','no_syntax','with_syntax'}.\n"
+    parser.add_argument("--mode",type=str,default="no_syntax",help="set the mode for finetuning model: {'probe_only','no_syntax','with_syntax'}.\n"
                                                                          "-probe_only: use only syntactic labels\n"
                                                                          "-no_syntax: finetune on RE task without introduing the syntax\n"
                                                                          "-with_syntax: syntax-driven finetune on RE task using extra syntactic loss items.")
@@ -66,6 +66,7 @@ def get_args():
     group.add_argument("--ensemble_id",type=int,default=1,
                          help="number of repetitive experiments to get an ensemble result")
     group.add_argument("--learning_rate",type=float,default=2e-5)
+    group.add_argument("--alpha",type=float,default=1.0)
     group.add_argument("--syntactic_learning_rate",type=float,default=2e-5)
     group.add_argument("--max_grad_norm", default=1.0, type=float,
                          help="Max gradient norm for gradient clipping.")
